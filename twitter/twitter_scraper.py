@@ -2,6 +2,8 @@ import requests
 from datetime import datetime, timedelta, timezone
 from config import BEARER_TOKEN
 from config import GOOGLE_AI_API_KEY
+from config import TELEGRAM_TOKEN
+from config import CHAT_ID
 from prompts import twitter_prompt
 
 
@@ -11,7 +13,7 @@ USER_ID = "106379129"
 
 def get_recent_tweets():
     now = datetime.now(timezone.utc)
-    since = now - timedelta(days=5) # 추출 시간
+    since = now - timedelta(days=1) # 추출 시간
 
     start_time = since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -60,6 +62,19 @@ def is_related_to_sk_gas(text):
 
     return answer.upper().startswith("YES")
 
+def send_telegram(message):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": message
+    }
+
+    res = requests.post(url, json=payload)
+
+    if res.status_code != 200:
+        print("텔레그램 전송 실패:", res.text)
+
 def main():
     tweets = get_recent_tweets()
 
@@ -69,13 +84,22 @@ def main():
         else:
             full_text = t["text"]
 
-        if not is_related_to_sk_gas(full_text):
-            continue
+        #if not is_related_to_sk_gas(full_text):
+        #    continue
 
-        print("=" * 50)
-        print("날짜:", t["created_at"])
-        print("내용:", full_text)
-        print("URL:", f"https://x.com/{USERNAME}/status/{t['id']}")
+        message = f"""
+이재명 대통령 트위터
+
+{full_text}
+
+https://x.com/{USERNAME}/status/{t['id']}
+"""
+
+        # 길이 제한 대비
+        if len(message) > 4000:
+            message = message[:4000]
+
+        send_telegram(message)
 
 
 if __name__ == "__main__":
