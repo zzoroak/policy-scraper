@@ -1,9 +1,7 @@
-import requests
-import time
-
+import os
 from datetime import datetime, timedelta, timezone
 
-import os
+import requests
 
 BEARER_TOKEN = os.getenv("BEARER_TOKEN")
 GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY")
@@ -11,7 +9,6 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
 from prompts import twitter_prompt
-
 
 USERNAME = "Jaemyung_Lee"
 USER_ID = "106379129"
@@ -51,7 +48,7 @@ def get_recent_tweets():
 def is_related_to_sk_gas(text):
     print("[Gemini 요청] 시작")
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_AI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={GOOGLE_AI_API_KEY}"
 
     payload = {
         "contents": [
