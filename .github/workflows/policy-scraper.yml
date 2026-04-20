@@ -20,4 +20,9 @@ jobs:
         run: pip install requests
 
       - name: Run script
+        env:
+          BEARER_TOKEN: ${{ secrets.BEARER_TOKEN }}
+          GOOGLE_AI_API_KEY: ${{ secrets.GOOGLE_AI_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
         run: python twitter_scraper.py
