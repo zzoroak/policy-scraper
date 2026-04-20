@@ -131,11 +131,6 @@ https://x.com/{USERNAME}/status/{t['id']}
 
 
 if __name__ == "__main__":
-    while True:
-        print("\n\n[실행 시작]", datetime.now())
-        try:
-            main()
-        except Exception as e:
-            print("[전체 에러]", e)
-
-        time.sleep(600)
+    if __name__ == "__main__":
+        print("실행:", datetime.now())
+        main()
