@@ -2,10 +2,14 @@ import requests
 import time
 
 from datetime import datetime, timedelta, timezone
-from config import BEARER_TOKEN
-from config import GOOGLE_AI_API_KEY
-from config import TELEGRAM_TOKEN
-from config import CHAT_ID
+
+import os
+
+BEARER_TOKEN = os.getenv("BEARER_TOKEN")
+GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+
 from prompts import twitter_prompt
 
 
