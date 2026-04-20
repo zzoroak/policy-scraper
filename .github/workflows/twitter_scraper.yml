@@ -2,7 +2,7 @@ name: twitter_scraper
 
 on:
   schedule:
-    - cron: "*/20 * * * *"   # 20분마다
+    - cron: "*/20 * * * *"
   workflow_dispatch:
   push: 
 
