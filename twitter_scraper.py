@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 
 import requests
 
+LAST_ID_FILE = "last_tweet_id.txt"
+
 BEARER_TOKEN = os.getenv("BEARER_TOKEN")
 GOOGLE_AI_API_KEY = os.getenv("GOOGLE_AI_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -16,7 +18,7 @@ USER_ID = "106379129"
 
 def get_recent_tweets():
     now = datetime.now(timezone.utc)
-    since = now - timedelta(minutes=30)
+    since = now - timedelta(minutes=90)
 
     print(f"[트윗 조회] since: {since.isoformat()}")
 
@@ -93,42 +95,57 @@ def send_telegram(message):
 
 
 def main():
+    last_processed_id = 0
+    if os.path.exists(LAST_ID_FILE):
+        with open(LAST_ID_FILE, "r") as f:
+            content = f.read().strip()
+            if content.isdigit():
+                last_processed_id = int(content)
+
+    print(f"[체크] 이전에 처리한 마지막 ID: {last_processed_id}")
+
     tweets = get_recent_tweets()
+    if not tweets:
+        print("새로운 트윗이 없습니다.")
+        return
+
+    tweets.sort(key=lambda x: int(x['id']))
+
+    new_last_id = last_processed_id
 
     for t in tweets:
+        current_id = int(t['id'])
+
+        if current_id <= last_processed_id:
+            continue
+
         print("=" * 50)
-        print(f"[트윗] {t['created_at']} / {t['id']}")
+        print(f"[신규 트윗 발견] {t['created_at']} / {current_id}")
 
-        if "note_tweet" in t and "text" in t["note_tweet"]:
-            full_text = t["note_tweet"]["text"]
-        else:
-            full_text = t["text"]
-
-        print(f"[내용]\n{full_text[:100]}...")
+        full_text = t.get("note_tweet", {}).get("text", t["text"])
 
         try:
             related = is_related_to_sk_gas(full_text)
-            print(f"[필터 결과] {'관련 있음' if related else '관련 없음'}")
-
             if not related:
-                print("[스킵]")
+                print("[스킵] 관련 없는 내용")
+                new_last_id = current_id
                 continue
 
         except Exception as e:
             print("[필터 에러 → 그냥 전송]", e)
             related = True
 
-        message = f"""이재명 대통령 트위터
-
-{full_text}
-
-https://x.com/{USERNAME}/status/{t['id']}
-"""
-
-        if len(message) > 4000:
-            message = message[:4000]
+        message = f"이재명 대통령 트위터\n\n{full_text}\n\nhttps://x.com/{USERNAME}/status/{t['id']}"
+        if len(message) > 4000: message = message[:4000]
 
         send_telegram(message)
+
+        new_last_id = current_id
+
+    if new_last_id > last_processed_id:
+        with open(LAST_ID_FILE, "w") as f:
+            f.write(str(new_last_id))
+        print(f"[저장] 최신 ID 업데이트: {new_last_id}")
 
 
 if __name__ == "__main__":
