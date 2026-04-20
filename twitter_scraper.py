@@ -16,7 +16,7 @@ USER_ID = "106379129"
 
 def get_recent_tweets():
     now = datetime.now(timezone.utc)
-    since = now - timedelta(minutes=20)
+    since = now - timedelta(minutes=30)
 
     print(f"[트윗 조회] since: {since.isoformat()}")
 
