@@ -2,7 +2,7 @@ name: twitter_scraper
 
 on:
   schedule:
-    - cron: '12,42 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
   push:
     branches: [ main ]
