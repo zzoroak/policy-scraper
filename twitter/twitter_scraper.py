@@ -1,4 +1,6 @@
 import requests
+import time
+
 from datetime import datetime, timedelta, timezone
 from config import BEARER_TOKEN
 from config import GOOGLE_AI_API_KEY
@@ -13,7 +15,9 @@ USER_ID = "106379129"
 
 def get_recent_tweets():
     now = datetime.now(timezone.utc)
-    since = now - timedelta(days=1) # 추출 시간
+    since = now - timedelta(minutes=10)
+
+    print(f"[트윗 조회] since: {since.isoformat()}")
 
     start_time = since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -31,12 +35,18 @@ def get_recent_tweets():
     res = requests.get(url, headers=headers, params=params)
 
     if res.status_code != 200:
-        print(res.status_code, res.text)
+        print("[트윗 조회 실패]", res.status_code, res.text)
         return []
 
-    return res.json().get("data", [])
+    data = res.json().get("data", [])
+    print(f"[트윗 조회 성공] 개수: {len(data)}")
+
+    return data
+
 
 def is_related_to_sk_gas(text):
+    print("[Gemini 요청] 시작")
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GOOGLE_AI_API_KEY}"
 
     payload = {
@@ -54,13 +64,16 @@ def is_related_to_sk_gas(text):
     res = requests.post(url, headers=headers, json=payload)
 
     if res.status_code != 200:
-        print("Gemini error:", res.text)
+        print("[Gemini 실패]", res.text)
         return False
 
     result = res.json()
     answer = result["candidates"][0]["content"]["parts"][0]["text"].strip()
 
+    print(f"[Gemini 결과] {answer}")
+
     return answer.upper().startswith("YES")
+
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -73,29 +86,44 @@ def send_telegram(message):
     res = requests.post(url, json=payload)
 
     if res.status_code != 200:
-        print("텔레그램 전송 실패:", res.text)
+        print("[텔레그램 실패]", res.text)
+    else:
+        print("[텔레그램 성공]")
+
 
 def main():
     tweets = get_recent_tweets()
 
     for t in tweets:
+        print("=" * 50)
+        print(f"[트윗] {t['created_at']} / {t['id']}")
+
         if "note_tweet" in t and "text" in t["note_tweet"]:
             full_text = t["note_tweet"]["text"]
         else:
             full_text = t["text"]
 
-        #if not is_related_to_sk_gas(full_text):
-        #    continue
+        print(f"[내용]\n{full_text[:100]}...")
 
-        message = f"""
-이재명 대통령 트위터
+        try:
+            related = is_related_to_sk_gas(full_text)
+            print(f"[필터 결과] {'관련 있음' if related else '관련 없음'}")
+
+            if not related:
+                print("[스킵]")
+                continue
+
+        except Exception as e:
+            print("[필터 에러 → 그냥 전송]", e)
+            related = True
+
+        message = f"""이재명 대통령 트위터
 
 {full_text}
 
 https://x.com/{USERNAME}/status/{t['id']}
 """
 
-        # 길이 제한 대비
         if len(message) > 4000:
             message = message[:4000]
 
@@ -103,4 +131,11 @@ https://x.com/{USERNAME}/status/{t['id']}
 
 
 if __name__ == "__main__":
-    main()
+    while True:
+        print("\n\n[실행 시작]", datetime.now())
+        try:
+            main()
+        except Exception as e:
+            print("[전체 에러]", e)
+
+        time.sleep(600)
